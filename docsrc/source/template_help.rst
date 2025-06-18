@@ -174,6 +174,17 @@ If you need to use a ``%`` (percent sign character), you can escape the percent 
 
 ``{title[:,%%]}`` replaces the ``:`` with ``%`` and ``{title contains Foo?{title}{percent},{title}}`` adds ``%`` to the  title if it contains ``Foo``.
 
+Controlling Time Zones
+----------------------
+
+All template fields that return a date or time support a ``.utc`` or ``.local`` postfix to convert the value to UTC or the host's local timezone before any subfields are applied.  For example::
+
+  {created.utc.strftime,%Y-%m-%dT%H%M%SZ}
+  {photo.date_added.local.year}
+
+Nested date attributes such as ``{photo.date_added}`` automatically support the same shortcut subfields as the top-level date fields (``year``, ``yy``, ``mm``, ``dd``, ``strftime``, etc.).
+
+
 Template Substitutions
 ----------------------
 

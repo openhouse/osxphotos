@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.73.0](https://github.com/RhetTbull/osxphotos/compare/v0.73.0...v0.72.1)
+
+### v0.73.0 (2025-06-17)
+
+#### Added
+
+- Template system supports `.utc` and `.local` postfixes for datetime fields.
+- Shortcut datetime subfields now work on all nested attributes.
+
+#### Changed
+
+#### Removed
+
+#### Fixed
+
+#### Contributors
+
+
 All notable changes to this project will be documented in this file.
 
 ## [v0.72.1](https://github.com/RhetTbull/osxphotos/compare/v0.72.1...v0.72.0)
