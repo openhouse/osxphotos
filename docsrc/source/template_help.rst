@@ -182,6 +182,11 @@ All template fields that return a date or time support a ``.utc`` or ``.local`` 
   {created.utc.strftime,%Y-%m-%dT%H%M%SZ}
   {photo.date_added.local.year}
 
+Using ``.utc`` or ``.local`` without a subfield returns the same output as the base
+field for top-level dates. For example, ``{created}`` and ``{created.utc}`` both
+resolve to ``YYYY-MM-DD``. Nested attributes like ``{photo.date_added.utc}``
+return the full ISO timestamp converted to the specified timezone.
+
 Nested date attributes such as ``{photo.date_added}`` automatically support the same shortcut subfields as the top-level date fields (``year``, ``yy``, ``mm``, ``dd``, ``strftime``, etc.).
 
 
