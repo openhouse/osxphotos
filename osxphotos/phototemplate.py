@@ -1375,19 +1375,27 @@ class PhotoTemplate:
                 )
             obj = self.photo
             idx = 1
+            tz_applied = False
             while idx < len(properties):
                 property_ = properties[idx]
                 if isinstance(obj, datetime.datetime):
                     if property_ == UTC_POSTFIX:
                         obj = obj.astimezone(datetime.timezone.utc)
+                        tz_applied = True
                         idx += 1
                         continue
                     if property_ == LOCAL_POSTFIX:
                         obj = obj.astimezone()
+                        tz_applied = True
                         idx += 1
                         continue
                     if property_ in DATETIME_SUBFIELDS:
-                        arg = field_arg if property_ == "strftime" else None
+                        if not tz_applied:
+                            obj = obj.astimezone()
+                        if property_ == "strftime":
+                            arg = field_arg or (default[0] if default else None)
+                        else:
+                            arg = None
                         obj = format_datetime_subfield(obj, property_, arg)
                         idx += 1
                         if idx != len(properties):

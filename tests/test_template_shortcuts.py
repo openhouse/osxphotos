@@ -12,8 +12,8 @@ def test_nested_date_shortcuts():
     template = osxphotos.PhotoTemplate(photo)
     options = RenderOptions()
     rendered, _ = template.render("{photo.date_added.year}", options)
-    assert rendered[0] == "2025"
+    assert rendered[0] == photo.date_added.astimezone().strftime("%Y")
     rendered, _ = template.render("{photo.date_added.yy}", options)
-    assert rendered[0] == "25"
+    assert rendered[0] == photo.date_added.astimezone().strftime("%y")
     rendered, _ = template.render("{photo.date_added.strftime,%Y-%m-%d}", options)
-    assert rendered[0] == "2025-06-11"
+    assert rendered[0] == photo.date_added.astimezone().strftime("%Y-%m-%d")
