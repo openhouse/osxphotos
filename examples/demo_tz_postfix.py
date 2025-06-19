@@ -19,6 +19,7 @@ def main():
         "{created.local}",
         "{photo.date_added}",
         "{photo.date_added.utc}",
+        "{photo.date_added.local.year}",
         "{photo.date_modified}",
         "{photo.date_modified.utc}",
     ]

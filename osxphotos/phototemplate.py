@@ -44,6 +44,19 @@ __all__ = [
 UTC_POSTFIX = "utc"
 LOCAL_POSTFIX = "local"
 
+
+def apply_tz_postfix(dt: datetime.datetime, parts: list[str]) -> tuple[datetime.datetime, list[str]]:
+    """Apply timezone postfix to dt if parts[1] is UTC_POSTFIX or LOCAL_POSTFIX.
+
+    Returns a tuple of the converted datetime and the remaining parts list
+    (with the postfix removed if it was present)."""
+
+    if len(parts) > 1 and parts[1] in (UTC_POSTFIX, LOCAL_POSTFIX):
+        tz = parts[1]
+        dt = dt.astimezone(datetime.timezone.utc) if tz == UTC_POSTFIX else dt.astimezone()
+        parts = [parts[0]] + parts[2:]
+    return dt, parts
+
 # subfields valid for datetime objects
 # derived from DateTimeFormatter to avoid duplication
 DATETIME_SUBFIELDS = {
@@ -924,14 +937,8 @@ class PhotoTemplate:
         # handle the fields that don't require a PhotoInfo object first
         if field.startswith("today"):
             parts = field.split(".")
-            dt = self.today
-            if len(parts) > 1 and parts[1] in (UTC_POSTFIX, LOCAL_POSTFIX):
-                tz = parts[1]
-                dt = dt.astimezone(datetime.timezone.utc) if tz == UTC_POSTFIX else dt.astimezone()
-                new_field = "today" + ("." + ".".join(parts[2:]) if len(parts) > 2 else "")
-            else:
-                new_field = field
-            value = format_date_field(dt, new_field, default)
+            dt, parts = apply_tz_postfix(self.today, parts)
+            value = format_date_field(dt, ".".join(parts), default)
         elif field in PUNCTUATION:
             value = PUNCTUATION[field]
         elif field == "osxphotos_version":
@@ -964,25 +971,14 @@ class PhotoTemplate:
             value = "favorite" if self.photo.favorite else None
         elif field.startswith("created"):
             parts = field.split(".")
-            dt = self.photo.date
-            if len(parts) > 1 and parts[1] in (UTC_POSTFIX, LOCAL_POSTFIX):
-                tz = parts[1]
-                dt = dt.astimezone(datetime.timezone.utc) if tz == UTC_POSTFIX else dt.astimezone()
-                new_field = "created" + ("." + ".".join(parts[2:]) if len(parts) > 2 else "")
-            else:
-                new_field = field
-            value = format_date_field(dt, new_field, default)
+            dt, parts = apply_tz_postfix(self.photo.date, parts)
+            value = format_date_field(dt, ".".join(parts), default)
         elif field.startswith("modified"):
             # if no modified date, use photo.date
             mod_dt = self.photo.date_modified or self.photo.date
             parts = field.split(".")
-            if len(parts) > 1 and parts[1] in (UTC_POSTFIX, LOCAL_POSTFIX):
-                tz = parts[1]
-                mod_dt = mod_dt.astimezone(datetime.timezone.utc) if tz == UTC_POSTFIX else mod_dt.astimezone()
-                new_field = "modified" + ("." + ".".join(parts[2:]) if len(parts) > 2 else "")
-            else:
-                new_field = field
-            value = format_date_field(mod_dt, new_field, default)
+            mod_dt, parts = apply_tz_postfix(mod_dt, parts)
+            value = format_date_field(mod_dt, ".".join(parts), default)
         elif field.startswith("place"):
             value = get_place_value(self.photo, field)
         elif field == "searchinfo.season":
@@ -1385,6 +1381,7 @@ class PhotoTemplate:
                             # fallback to system local timezone; Photos may store
                             # 'floating' dates without timezone info so a
                             # future enhancement could use photo.tz_offset
+                            # TODO: https://github.com/RhetTbull/osxphotos/issues/1792
                             obj = obj.astimezone()
                         if property_ == "strftime":
                             arg = field_arg or (default[0] if default else None)
