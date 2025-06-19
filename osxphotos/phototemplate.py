@@ -45,21 +45,12 @@ UTC_POSTFIX = "utc"
 LOCAL_POSTFIX = "local"
 
 # subfields valid for datetime objects
+# derived from DateTimeFormatter to avoid duplication
 DATETIME_SUBFIELDS = {
-    "date",
-    "year",
-    "yy",
-    "mm",
-    "month",
-    "mon",
-    "dd",
-    "dow",
-    "doy",
-    "hour",
-    "min",
-    "sec",
-    "strftime",
-}
+    name
+    for name, obj in DateTimeFormatter.__dict__.items()
+    if isinstance(obj, property)
+} | {"strftime"}
 
 # TODO: a lot of values are passed from function to function like path_sep--make these all class properties
 
@@ -1391,6 +1382,9 @@ class PhotoTemplate:
                         continue
                     if property_ in DATETIME_SUBFIELDS:
                         if not tz_applied:
+                            # fallback to system local timezone; Photos may store
+                            # 'floating' dates without timezone info so a
+                            # future enhancement could use photo.tz_offset
                             obj = obj.astimezone()
                         if property_ == "strftime":
                             arg = field_arg or (default[0] if default else None)

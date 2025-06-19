@@ -181,6 +181,7 @@ All template fields that return a date or time support a ``.utc`` or ``.local`` 
 
   {created.utc.strftime,%Y-%m-%dT%H%M%SZ}
   {photo.date_added.local.year}
+  {photo.date_added.utc.year}
 
 Using ``.utc`` or ``.local`` without a subfield returns the same output as the base
 field for top-level dates. For example, ``{created}`` and ``{created.utc}`` both

@@ -1,7 +1,10 @@
+import os
 import osxphotos
 from osxphotos.phototemplate import RenderOptions
 
-PHOTOS_DB = "./tests/Test-16.0.0-beta.photoslibrary/database/photos.db"
+PHOTOS_DB = os.environ.get(
+    "PHOTOS_DB", "./tests/Test-16.0.0-beta.photoslibrary/database/photos.db"
+)
 UUID = "6F570409-7B94-4D89-AFC6-D04BF11E5EA8"
 
 

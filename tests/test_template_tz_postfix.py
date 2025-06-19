@@ -44,3 +44,14 @@ def test_utc_no_subfield_same_as_default():
     rendered_default, _ = template.render("{created}", options)
     rendered_utc, _ = template.render("{created.utc}", options)
     assert rendered_default[0] == rendered_utc[0]
+
+
+def test_today_utc_dd():
+    photosdb = osxphotos.PhotosDB(dbfile=PHOTOS_DB)
+    photo = photosdb.photos(uuid=[UUID])[0]
+    template = osxphotos.PhotoTemplate(photo)
+    template.today = datetime.datetime(2023, 1, 15, 12, 30)
+    options = RenderOptions()
+    expected = template.today.astimezone(datetime.timezone.utc).strftime("%d")
+    rendered, _ = template.render("{today.utc.dd}", options)
+    assert rendered[0] == expected

@@ -149,6 +149,7 @@ All template fields that return a datetime support a `.utc` or `.local` postfix 
 
   {created.utc.strftime,%Y-%m-%dT%H%M%SZ}
   {photo.date_added.local.year}
+  {photo.date_added.utc.year}
 
 Using `.utc` or `.local` without a subfield returns the same output as the base
 field for top-level dates (e.g. `{created}` and `{created.utc}` both resolve to
