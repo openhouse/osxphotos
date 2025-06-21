@@ -141,3 +141,20 @@ Variables can also be referenced as fields in the template string, for example: 
 If you need to use a `%` (percent sign character), you can escape the percent sign by using `%%`.  You can also use the `{percent}` template field where a template field is required. For example:
 
 `{title[:,%%]}` replaces the `:` with `%` and `{title contains Foo?{title}{percent},{title}}` adds `%` to the  title if it contains `Foo`.
+
+Controlling Time Zones
+----------------------
+
+All template fields that return a datetime support a `.utc` or `.local` postfix to explicitly convert the value before applying any subfields. For example::
+
+  {created.utc.strftime,%Y-%m-%dT%H%M%SZ}
+  {photo.date_added.local.year}
+  {photo.date_added.utc.year}
+
+Using `.utc` or `.local` without a subfield returns the same output as the base
+field for top-level dates (e.g. `{created}` and `{created.utc}` both resolve to
+`YYYY-MM-DD`). For nested attributes like `{photo.date_added.utc}`, the value is
+returned in full ISO format converted to the specified timezone.
+
+Nested date attributes such as `{photo.date_added}` also expose the shortcut subfields like `year`, `yy`, `mm`, `dd`, and `strftime`.
+

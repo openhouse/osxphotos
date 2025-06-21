@@ -2787,6 +2787,21 @@ If you need to use a `%` (percent sign character), you can escape the percent si
 
 `{title[:,%%]}` replaces the `:` with `%` and `{title contains Foo?{title}{percent},{title}}` adds `%` to the  title if it contains `Foo`.
 
+### Controlling Time Zones
+
+All template fields that return a date or time value support a `.utc` or `.local` postfix to convert the value before applying subfields. Example::
+
+  {created.utc.strftime,%Y-%m-%dT%H%M%SZ}
+  {photo.date_added.local.year}
+  {photo.date_added.utc.year}
+
+Using `.utc` or `.local` without a subfield returns the same output as the base field
+for top-level dates (for example, `{created}` and `{created.utc}` both render to
+`YYYY-MM-DD`). For nested attributes like `{photo.date_added.utc}`, the value is
+returned in full ISO format converted to the specified timezone.
+
+Nested date attributes such as `{photo.date_added}` also expose the shortcut subfields like `year`, `yy`, `mm`, `dd`, and `strftime`.
+
 <!-- OSXPHOTOS-TEMPLATE-HELP:END -->
 
 The following template field substitutions are availabe for use the templating system.

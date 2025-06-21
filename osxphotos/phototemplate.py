@@ -40,6 +40,31 @@ __all__ = [
     "format_str_value",
 ]
 
+# postfix constants for timezone conversion
+UTC_POSTFIX = "utc"
+LOCAL_POSTFIX = "local"
+
+
+def apply_tz_postfix(dt: datetime.datetime, parts: list[str]) -> tuple[datetime.datetime, list[str]]:
+    """Apply timezone postfix to dt if parts[1] is UTC_POSTFIX or LOCAL_POSTFIX.
+
+    Returns a tuple of the converted datetime and the remaining parts list
+    (with the postfix removed if it was present)."""
+
+    if len(parts) > 1 and parts[1] in (UTC_POSTFIX, LOCAL_POSTFIX):
+        tz = parts[1]
+        dt = dt.astimezone(datetime.timezone.utc) if tz == UTC_POSTFIX else dt.astimezone()
+        parts = [parts[0]] + parts[2:]
+    return dt, parts
+
+# subfields valid for datetime objects
+# derived from DateTimeFormatter to avoid duplication
+DATETIME_SUBFIELDS = {
+    name
+    for name, obj in DateTimeFormatter.__dict__.items()
+    if isinstance(obj, property)
+} | {"strftime"}
+
 # TODO: a lot of values are passed from function to function like path_sep--make these all class properties
 
 # ensure locale set to user's locale
@@ -869,7 +894,7 @@ class PhotoTemplate:
             )
         elif field in MULTI_VALUE_SUBSTITUTIONS or field.startswith("photo"):
             vals = self.get_template_value_multi(
-                field, subfield, path_sep=field_arg, default=default
+                field, subfield, path_sep=field_arg, default=default, field_arg=field_arg
             )
         elif field.split(".")[0] in PATHLIB_SUBSTITUTIONS:
             vals = self.get_template_value_pathlib(field)
@@ -911,7 +936,9 @@ class PhotoTemplate:
         # wouldn't a switch/case statement be nice...
         # handle the fields that don't require a PhotoInfo object first
         if field.startswith("today"):
-            value = format_date_field(self.today, field, default)
+            parts = field.split(".")
+            dt, parts = apply_tz_postfix(self.today, parts)
+            value = format_date_field(dt, ".".join(parts), default)
         elif field in PUNCTUATION:
             value = PUNCTUATION[field]
         elif field == "osxphotos_version":
@@ -943,12 +970,15 @@ class PhotoTemplate:
         elif field == "favorite":
             value = "favorite" if self.photo.favorite else None
         elif field.startswith("created"):
-            value = format_date_field(self.photo.date, field, default)
+            parts = field.split(".")
+            dt, parts = apply_tz_postfix(self.photo.date, parts)
+            value = format_date_field(dt, ".".join(parts), default)
         elif field.startswith("modified"):
             # if no modified date, use photo.date
-            value = format_date_field(
-                self.photo.date_modified or self.photo.date, field, default
-            )
+            mod_dt = self.photo.date_modified or self.photo.date
+            parts = field.split(".")
+            mod_dt, parts = apply_tz_postfix(mod_dt, parts)
+            value = format_date_field(mod_dt, ".".join(parts), default)
         elif field.startswith("place"):
             value = get_place_value(self.photo, field)
         elif field == "searchinfo.season":
@@ -1214,7 +1244,7 @@ class PhotoTemplate:
 
         return predicate_is_true
 
-    def get_template_value_multi(self, field, subfield, path_sep, default):
+    def get_template_value_multi(self, field, subfield, path_sep, default, field_arg=None):
         """lookup value for template field (multi-value template substitutions)
 
         Args:
@@ -1331,8 +1361,37 @@ class PhotoTemplate:
                     "Missing property in {photo} template.  Use in form {photo.property}."
                 )
             obj = self.photo
-            for i in range(1, len(properties)):
-                property_ = properties[i]
+            idx = 1
+            tz_applied = False
+            while idx < len(properties):
+                property_ = properties[idx]
+                if isinstance(obj, datetime.datetime):
+                    if property_ == UTC_POSTFIX:
+                        obj = obj.astimezone(datetime.timezone.utc)
+                        tz_applied = True
+                        idx += 1
+                        continue
+                    if property_ == LOCAL_POSTFIX:
+                        obj = obj.astimezone()
+                        tz_applied = True
+                        idx += 1
+                        continue
+                    if property_ in DATETIME_SUBFIELDS:
+                        if not tz_applied:
+                            # fallback to system local timezone; Photos may store
+                            # 'floating' dates without timezone info so a
+                            # future enhancement could use photo.tz_offset
+                            # TODO: https://github.com/RhetTbull/osxphotos/issues/1792
+                            obj = obj.astimezone()
+                        if property_ == "strftime":
+                            arg = field_arg or (default[0] if default else None)
+                        else:
+                            arg = None
+                        obj = format_datetime_subfield(obj, property_, arg)
+                        idx += 1
+                        if idx != len(properties):
+                            raise ValueError(f"Unhandled template value: {field}")
+                        break
                 try:
                     obj = getattr(obj, property_)
                     if obj is None:
@@ -1341,9 +1400,12 @@ class PhotoTemplate:
                     raise ValueError(
                         "Invalid property for {photo} template: " + f"'{property_}'"
                     ) from e
+                idx += 1
 
             if obj is None:
                 values = []
+            elif isinstance(obj, datetime.datetime):
+                values = [obj.isoformat()]
             elif isinstance(obj, bool):
                 values = [property_] if obj else []
             elif isinstance(obj, (str, int, float)):
@@ -1711,6 +1773,22 @@ def values_to_float(values: List[str]) -> List[str]:
         with suppress(ValueError):
             float_values.append(str(float(v)))
     return float_values
+
+
+def format_datetime_subfield(dt: datetime.datetime, subfield: str, arg: str | None) -> str:
+    """Return string for datetime subfield."""
+
+    if subfield == "strftime":
+        if not arg:
+            return None
+        try:
+            return dt.strftime(arg)
+        except Exception as e:  # pragma: no cover - invalid format
+            raise ValueError(f"Invalid strftime template: '{arg}'") from e
+    try:
+        return getattr(DateTimeFormatter(dt), subfield)
+    except AttributeError as e:
+        raise ValueError(f"Unhandled datetime subfield: {subfield}") from e
 
 
 def format_date_field(dt: datetime.datetime, field: str, args: List[str]) -> str:
